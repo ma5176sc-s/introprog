@@ -1,0 +1,648 @@
+%!TEX encoding = UTF-8 Unicode
+%!TEX root = ../lect-week10.tex
+
+%%%
+
+\ifkompendium\else
+
+\Subsection{Veckans labb: \texttt{maze}}
+\begin{Slide}{Veckans labb: \texttt{maze}}\SlideFontSmall
+Grunduppgift:
+\begin{itemize}
+\item Implementera en algoritm som hittar ut ur en labyrint.
+
+\item En labyrint representeras av en \Emph{matris}, \\närmare bestämt en \Emph{vektor av vektorer} med  \Alert{booelska} värden: \\ \code{Vector[Vector[Boolean]]} 
+
+\pause Där de två olika sanningsvärdena representerar följande:
+\begin{itemize}\SlideFontSmall
+\item \code{true} om det \Emph{finns en vägg} på en viss plats i matrisen
+\item \code{false} om det \Alert{inte} finns en vägg på en viss plats i matrisen 
+
+\end{itemize}
+\pause
+\item Använd enkel idé (som inte ger kortaste vägen): \\ Behåll vänster hand i kontakt med väggen och gå tills du når utgången.
+
+\item Vad krävs av labyrinten för att detta ska fungera?  
+\end{itemize}
+\pause Extrauppgift:
+\begin{itemize}
+\item Generera slumpmässig labyrint 
+\item Algoritmen (\emph{Prims algoritm}) är given i pseudokod
+\end{itemize}
+
+\end{Slide}
+
+\begin{Slide}{Labyrint som booelsk matris}
+\includegraphics[width=1.0\textwidth]{../img/w09-lab/MazeAndMatrix.jpg}
+\end{Slide}
+
+\begin{Slide}{Slumpmässig labyrint}
+\includegraphics[width=0.68\textwidth]{../img/w09-lab/RandomMaze.jpg}
+\end{Slide}
+
+\Subsection{Matriser}
+
+\begin{Slide}{Vad är en matris?}\SlideFontSmall
+\begin{multicols}{2}
+\begin{itemize}
+\item En \Emph{matris} inom \Alert{matematiken} innehåller \Emph{rader} med lika många tal och \Emph{kolumner} med lika många tal. 
+
+\item En matris av dimension $m\times{}n$ har $m \cdot n$ stycken element. 
+
+\end{itemize}
+
+\columnbreak
+\begin{itemize}
+\item En matris $M_{2,5}$ ritas inom matematiken ofta så här:
+\end{itemize}
+\[
+M=
+  \begin{pmatrix}
+    5 & 2 & 42 & 4 & 5 \\
+    3 & 4 & 18 & 6 & 7
+  \end{pmatrix}
+\]
+
+\begin{itemize}
+\pause
+\item Indexering inom matematiken sker från 1 (men oftast från 0 i datorprogram).
+
+\item Vad har talet 42 för index i matrisen M ovan?
+\end{itemize}
+\end{multicols}
+\end{Slide}
+
+\begin{Slide}{En matris med array av arrayer}
+Inom programmering används ordet \Emph{matris} ofta för att beteckna en \Alert{nästlade struktur} i två dimensioner, till exempel en instans av typen \code{Array[Array[Int]]}
+\begin{REPL}
+scala> val xss = Array(Array(5,2,42,4,5),Array(3,4,18,6,7))
+xss: Array[Array[Int]] = Array(Array(5, 2, 42, 4, 5), Array(3, 4, 18, 6, 7))
+\end{REPL}
+\pause
+Man indexerar i en nästlad sekvens med upprepad \code{apply}:
+\begin{REPL}
+scala> xss(0)(2)
+res0: ???                   // Vad är typ och värde?
+
+scala> xss.apply(0).apply(2)
+res1: ???                   // Vad är typ och värde?
+
+scala> xss(0)
+res2: ???                   // Vad är typ och värde?
+\end{REPL}
+
+\end{Slide}
+
+\begin{Slide}{En matris med array av arrayer}
+Inom programmering används ordet \Emph{matris} ofta för att beteckna en \Alert{nästlade struktur} i två dimensioner, till exempel en instans av typen \code{Array[Array[Int]]}
+\begin{REPL}
+scala> val xss = Array(Array(5,2,42,4,5),Array(3,4,18,6,7))
+xss: Array[Array[Int]] = Array(Array(5, 2, 42, 4, 5), Array(3, 4, 18, 6, 7))
+\end{REPL}
+
+Man indexerar i en nästlad sekvens med upprepad \code{apply}:
+\begin{REPL}
+scala> xss(0)(2)
+res0: Int = 42
+
+scala> xss.apply(0).apply(2)
+res1: Int = 42
+
+scala> xss(0)
+res2: Array[Int] = Array(5, 2, 42, 4, 5)
+\end{REPL}
+\end{Slide}
+
+\begin{Slide}{Uppdatering av en förändringsbar nästlad struktur}
+Man kan förändra en array av arrayer ''på plats'' med tilldelning:
+\begin{REPL}
+scala> val xss = Array(Array(5,2,42,4,5),Array(3,4,18,6,7))
+
+scala> xss(0)(0) = 100
+
+scala> xss
+res0: ???
+
+scala> xss(0)(2) = xss(0)(2) - 1
+
+scala> xss
+res1: ???
+
+scala> xss(1) = Array.fill(5)(-1)
+
+scala> xss
+res2: ???
+\end{REPL}
+\end{Slide}
+
+\begin{Slide}{Uppdatering av en förändringsbar nästlad struktur}
+Man kan förändra en array av arrayer ''på plats'' med tilldelning:
+\begin{REPL}
+scala> val xss = Array(Array(5,2,42,4,5),Array(3,4,18,6,7))
+
+scala> xss(0)(0) = 100
+
+scala> xss
+res0: Array[Array[Int]]=Array(Array(100, 2, 42, 4, 5), Array(3, 4, 18, 6, 7))
+
+scala> xss(0)(2) = xss(0)(2) - 1
+
+scala> xss
+res1: Array[Array[Int]]=Array(Array(100, 2, 41, 4, 5), Array(3, 4, 18, 6, 7))
+
+scala> xss(1) = Array.fill(5)(-1)
+
+scala> xss
+res2: Array[Array[Int]]=Array(Array(100, 2, 41, 4, 5), Array(-1,-1,-1,-1,-1))
+\end{REPL}
+\end{Slide}
+
+\begin{Slide}{Några olika sätt att skapa förändringsbara matriser}\SlideFontSmall
+Det jobbiga, primitiva sättet:
+\begin{REPL}
+scala> val xs = new Array[Array[Int]](2)
+xs: Array[Array[Int]] = Array(null, null)
+
+scala> for (i <- xs.indices) {xs(i) = new Array[Int](5)}
+
+scala> xs
+res0: Array[Array[Int]] = Array(Array(0, 0, 0, 0, 0), Array(0, 0, 0, 0, 0))
+
+scala> println(xs)
+[[I@196a99d0
+\end{REPL}
+Enklare sätt:
+\begin{REPL}
+scala> val xs = Array.ofDim[Int](2,5)
+xs: Array[Array[Int]] = Array(Array(0, 0, 0, 0, 0), Array(0, 0, 0, 0, 0))
+\end{REPL}
+Enklare och tydligare sätt, där initialvärdet anges explicit:
+\begin{REPL}
+scala> Array.fill(2,5)(0)
+res37: Array[Array[Int]] = Array(Array(0, 0, 0, 0, 0), Array(0, 0, 0, 0, 0))
+\end{REPL}
+
+\end{Slide}
+
+\begin{Slide}{Exempel på skapande av oföränderlig nästlad struktur}\SlideFontSmall
+Om du kan beräkna initialvärde direkt, använd \code{Vector.fill}:\\
+{\SlideFontTiny\code{def fill[A](n1: Int, n2: Int)(elem: => A): Vector[Vector[A]]}}
+\begin{REPL}
+scala> Vector.fill(2,5)(scala.util.Random.nextInt(6) + 1)
+res0: 
+  typ???
+  värde???
+
+\end{REPL}
+Om du kan beräkna initialvärde ur index, använd \code{Vector.tabulate}:\\
+{\SlideFontTiny\code{def tabulate[A](n1: Int, n2: Int)(f: (Int, Int) => A): Vector[Vector[A]]}}
+\begin{REPL}
+scala> Vector.tabulate(5,2)((x,y) => x + y + 1)
+res1: 
+  typ???
+  värde???
+
+\end{REPL}
+\end{Slide}
+
+\begin{Slide}{Exempel på skapande av oföränderlig nästlad struktur}\SlideFontSmall
+Om du kan beräkna initialvärde direkt, använd \code{Vector.fill}:\\
+{\SlideFontTiny\code{def fill[A](n1: Int, n2: Int)(elem: => A): Vector[Vector[A]]}}
+\begin{REPL}
+scala> Vector.fill(2,5)(scala.util.Random.nextInt(6) + 1)
+res0: 
+  scala.collection.immutable.Vector[scala.collection.immutable.Vector[Int]] = 
+  Vector(Vector(1, 2, 6, 2, 1), Vector(1, 4, 3, 3, 2))
+
+\end{REPL}
+Om du kan beräkna initialvärde ur index, använd \code{Vector.tabulate}:\\
+{\SlideFontTiny\code{def tabulate[A](n1: Int, n2: Int)(f: (Int, Int) => A): Vector[Vector[A]]}}
+\begin{REPL}
+scala> Vector.tabulate(5,2)((x,y) => x + y + 1)
+res1: 
+  scala.collection.immutable.Vector[scala.collection.immutable.Vector[Int]] = 
+  Vector(Vector(1,2), Vector(2,3), Vector(3,4), Vector(4,5), Vector(5,	6))
+
+\end{REPL}
+\end{Slide}
+
+
+
+\begin{Slide}{Uppdatering av en oföränderlig nästlad struktur}\SlideFontSmall
+Uppdatering av endimensionell struktur med \code{xs.updated}:\\
+{\SlideFontTiny\code{def updated[A](index: Int, elem: A): Vector[A]} }
+\begin{REPL}
+scala> var xs = Vector.tabulate(5)(x => x + 1)
+xs: typ??? = värde???
+
+scala> xs = xs.updated(1, 42)
+xs: typ??? = värde???
+\end{REPL}
+
+Uppdatering av nästlad struktur i två dimensioner:
+\begin{REPL}
+scala> var xss = Vector.tabulate(2, 5)((x,y) => x + y + 1)
+xss: 
+  typ??? =
+  värde???
+
+scala> xss = xss.updated(0, xss(0).updated(1, 42))
+xss: 
+  typ??? =
+  värde???
+\end{REPL}
+
+\end{Slide}
+
+
+
+\begin{Slide}{Uppdatering av en oföränderlig nästlad struktur}\SlideFontSmall
+Uppdatering av endimensionell struktur med \code{xs.updated}:\\
+{\SlideFontTiny\code{def updated[A](index: Int, elem: A): Vector[A]} }
+\begin{REPL}
+scala> var xs = Vector.tabulate(5)(x => x + 1)
+xs: scala.collection.immutable.Vector[Int] = Vector(1, 2, 3, 4, 5)
+
+scala> xs = xs.updated(1, 42)
+xs: scala.collection.immutable.Vector[Int] = Vector(1, 42, 3, 4, 5)
+\end{REPL}
+
+Uppdatering av nästlad struktur i två dimensioner:
+\begin{REPL}
+scala> var xss = Vector.tabulate(2, 5)((x,y) => x + y + 1)
+xss: 
+  scala.collection.immutable.Vector[scala.collection.immutable.Vector[Int]] = 
+  Vector(Vector(1, 2, 3, 4, 5), Vector(2, 3, 4, 5, 6))
+
+scala> xss = xss.updated(0, xss(0).updated(1, 42))
+xss: 
+  scala.collection.immutable.Vector[scala.collection.immutable.Vector[Int]] = 
+  Vector(Vector(1, 42, 3, 4, 5), Vector(2, 3, 4, 5, 6))
+\end{REPL}
+
+\end{Slide}
+
+
+\begin{Slide}{Iterera över nästlad struktur: for-sats}\SlideFontSmall
+Iterera med nästlad for-sats:
+\begin{REPL}
+scala> val xss = Vector.tabulate(2,5)((x,y) => x + y + 1)
+
+scala> for (???) { 
+         for (???) {
+           print(xss(i)(j) + " ")
+         }
+         println
+       }
+
+1 2 3 4 5 
+2 3 4 5 6 
+\end{REPL}
+\end{Slide}
+
+\begin{Slide}{Iterera över nästlad struktur: for-sats}\SlideFontSmall
+Iterera med nästlad for-sats:
+\begin{REPL}
+scala> val xss = Vector.tabulate(2,5)((x,y) => x + y + 1)
+
+scala> for (i <- xss.indices) { 
+         for (j <- xss(i).indices) {
+           print(xss(i)(j) + " ")
+         }
+         println
+       }
+
+1 2 3 4 5 
+2 3 4 5 6 
+\end{REPL}
+\end{Slide}
+
+
+\begin{Slide}{Övningsexempel: Yatzy}\SlideFontSmall
+Skapa en funktion \code{roll} som ger utfallet av n st tärningskast:
+\begin{REPL}
+scala> import scala.util.Random
+
+scala> def roll(n: Int): Vector[Int] = ???
+\end{REPL}
+
+Skapa en funktion \code{isYatzy} som ger \code{true} om alla utfall är lika:
+\begin{REPL}
+scala> def isYatzy(xs: Vector[Int]): Boolean = ???
+\end{REPL}
+Du kan anta att xs.length > 0\\
+Tips: använd metoden xs.forall: \\
+\code{def forall[A](p: A => Boolean): Boolean }
+\end{Slide}
+
+
+\begin{Slide}{Övningsexempel: Yatzy}\SlideFontSmall
+Skapa en funktion \code{roll} som ger utfallet av n st tärningskast:
+\begin{REPL}
+scala> import scala.util.Random
+
+scala> def roll(n: Int): Vector[Int] = Vector.fill(n)(Random.nextInt(6) + 1)
+\end{REPL}
+
+Skapa en funktion \code{isYatzy} som ger \code{true} om alla utfall är lika:
+\begin{REPL}
+scala> def isYatzy(xs: Vector[Int]): Boolean = xs.forall(x => x == xs(0))
+\end{REPL}
+Du kan anta att xs.length > 0\\
+Tips: använd metoden xs.forall: \\
+\code{def forall[A](p: A => Boolean): Boolean }
+\end{Slide}
+
+\begin{Slide}{Iterera över nästlad struktur: for-sats}\SlideFontSmall
+Iterera med nästlad for-sats: (vad har xss för typ?)
+\begin{REPL}
+scala> val xss = Vector.fill(100)(roll(5))
+
+scala> for (???) { 
+         for (???) {
+           print(s"($i)($j) == " + xss(i)(j) + " ")
+         }
+         println(isYatzy(???))
+       }
+
+(0)(0) == 5 (0)(1) == 3 (0)(2) == 4 (0)(3) == 1 (0)(4) == 3 false
+(1)(0) == 3 (1)(1) == 3 (1)(2) == 6 (1)(3) == 3 (1)(4) == 1 false
+(2)(0) == 3 (2)(1) == 4 (2)(2) == 2 (2)(3) == 2 (2)(4) == 1 false
+(3)(0) == 5 (3)(1) == 2 (3)(2) == 6 (3)(3) == 5 (3)(4) == 1 false
+(4)(0) == 4 (4)(1) == 6 (4)(2) == 4 (4)(3) == 1 (4)(4) == 4 false
+(5)(0) == 3 (5)(1) == 4 (5)(2) == 6 (5)(3) == 5 (5)(4) == 1 false
+(6)(0) == 4 (6)(1) == 6 (6)(2) == 2 (6)(3) == 2 (6)(4) == 6 false
+(7)(0) == 2 (7)(1) == 5 (7)(2) == 3 (7)(3) == 6 (7)(4) == 2 false
+(8)(0) == 4 (8)(1) == 4 (8)(2) == 6 (8)(3) == 1 (8)(4) == 4 false
+(9)(0) == 3 (9)(1) == 3 (9)(2) == 3 (9)(3) == 3 (9)(4) == 3 true
+(10)(0) == 1 (10)(1) == 2 (10)(2) == 4 (10)(3) == 3 (10)(4) == 3 false
+(11)(0) == 6 (11)(1) == 5 (11)(2) == 4 (11)(3) == 1 (11)(4) == 5 false
+(12)(0) == 3 (12)(1) == 6 (12)(2) == 6 (12)(3) == 4 (12)(4) == 2 false
+\end{REPL}
+\end{Slide}
+
+\begin{Slide}{Iterera över nästlad struktur: for-sats}\SlideFontSmall
+Iterera med nästlad for-sats: (xss är en \code{Vector[Vector[Int]]})
+\begin{REPL}
+scala> val xss = Vector.fill(100)(roll(5))
+
+scala> for (i <- xss.indices) { 
+         for (j <- xss(i).indices) {
+           print(s"($i)($j) == " + xss(i)(j) + " ")
+         }
+         println(isYatzy(xss(i)))
+       }
+
+(0)(0) == 5 (0)(1) == 3 (0)(2) == 4 (0)(3) == 1 (0)(4) == 3 false
+(1)(0) == 3 (1)(1) == 3 (1)(2) == 6 (1)(3) == 3 (1)(4) == 1 false
+(2)(0) == 3 (2)(1) == 4 (2)(2) == 2 (2)(3) == 2 (2)(4) == 1 false
+(3)(0) == 5 (3)(1) == 2 (3)(2) == 6 (3)(3) == 5 (3)(4) == 1 false
+(4)(0) == 4 (4)(1) == 6 (4)(2) == 4 (4)(3) == 1 (4)(4) == 4 false
+(5)(0) == 3 (5)(1) == 4 (5)(2) == 6 (5)(3) == 5 (5)(4) == 1 false
+(6)(0) == 4 (6)(1) == 6 (6)(2) == 2 (6)(3) == 2 (6)(4) == 6 false
+(7)(0) == 2 (7)(1) == 5 (7)(2) == 3 (7)(3) == 6 (7)(4) == 2 false
+(8)(0) == 4 (8)(1) == 4 (8)(2) == 6 (8)(3) == 1 (8)(4) == 4 false
+(9)(0) == 3 (9)(1) == 3 (9)(2) == 3 (9)(3) == 3 (9)(4) == 3 true
+(10)(0) == 1 (10)(1) == 2 (10)(2) == 4 (10)(3) == 3 (10)(4) == 3 false
+(11)(0) == 6 (11)(1) == 5 (11)(2) == 4 (11)(3) == 1 (11)(4) == 5 false
+(12)(0) == 3 (12)(1) == 6 (12)(2) == 6 (12)(3) == 4 (12)(4) == 2 false
+\end{REPL}
+\end{Slide}
+
+
+\begin{Slide}{Iterera över nästlad struktur med nästlad foreach}\SlideFontSmall
+Iterera med nästlad foreach-sats:
+\begin{REPL}
+scala> val xss = Vector.tabulate(2,5)((x,y) => x + y + 1)
+
+xss.foreach{ xs => ??? ; println }
+
+1 2 3 4 5 
+2 3 4 5 6 
+\end{REPL}
+\end{Slide}
+
+
+\begin{Slide}{Iterera över nästlad struktur med nästlad foreach}\SlideFontSmall
+Iterera med nästlad foreach-sats:
+\begin{REPL}
+scala> val xss = Vector.tabulate(2,5)((x,y) => x + y + 1)
+
+xss.foreach{ xs => xs.foreach{ x => print(x + " ") }; println }
+
+1 2 3 4 5 
+2 3 4 5 6 
+\end{REPL}
+\end{Slide}
+
+
+\begin{Slide}{Nästlade for-uttryck}\SlideFontSmall
+Iterera med \Emph{nästlad for-yield}:\\
+%Statisk typ: \code{IndexedSeq[IndexedSeq[[Int]]} \\
+%Dynamisk typ: \code{Vector[Vector[[Int]]}
+ 
+\begin{REPL}
+scala> val xss = for (i <- 1 to 2) yield { 
+                   for (j <- 1 to 5) yield i + j + 1
+                 }
+xss: 
+  scala.collection.immutable.IndexedSeq[
+    scala.collection.immutable.IndexedSeq[Int]] = 
+      ???
+
+\end{REPL}
+Om man skriver så här får man en endimensionell struktur:
+\begin{REPL}
+scala> val xs = for (i <- 1 to 2; j <- 1 to 5) yield i + j + 1
+xs: 
+  scala.collection.immutable.IndexedSeq[Int] = 
+    ???
+
+\end{REPL}
+\end{Slide}
+
+\begin{Slide}{Nästlade for-uttryck}\SlideFontSmall
+Iterera med \Emph{nästlad for-yield}:\\
+\begin{REPL}
+scala> val xss = for (i <- 1 to 2) yield { 
+                   for (j <- 1 to 5) yield i + j + 1
+                 }
+xss: 
+  scala.collection.immutable.IndexedSeq[
+    scala.collection.immutable.IndexedSeq[Int]] = 
+      Vector(Vector(3, 4, 5, 6, 7), Vector(4, 5, 6, 7, 8))
+
+\end{REPL}
+Om man skriver så här får man en endimensionell struktur:
+\begin{REPL}
+scala> val xs = for (i <- 1 to 2; j <- 1 to 5) yield i + j + 1
+xs: 
+  scala.collection.immutable.IndexedSeq[Int] = 
+    Vector(3, 4, 5, 6, 7, 4, 5, 6, 7, 8)
+
+\end{REPL}
+\end{Slide}
+
+
+
+\begin{Slide}{Nästlade map-uttryck}\SlideFontSmall
+Iterera med \Emph{nästlade map-uttryck}:\\
+\begin{REPL}
+scala> val xss = (1 to 2).map(i => (1 to 5).map(j => i + j + 1))
+xss: 
+  scala.collection.immutable.IndexedSeq[
+    scala.collection.immutable.IndexedSeq[Int]] = 
+      ???
+\end{REPL}
+\end{Slide}
+
+\begin{Slide}{Nästlade map-uttryck}\SlideFontSmall
+Iterera med \Emph{nästlade map-uttryck}:\\
+\begin{REPL}
+scala> val xss = (1 to 2).map(i => (1 to 5).map(j => i + j + 1))
+xss: 
+  scala.collection.immutable.IndexedSeq[
+    scala.collection.immutable.IndexedSeq[Int]] = 
+      Vector(Vector(3, 4, 5, 6, 7), Vector(4, 5, 6, 7, 8))
+\end{REPL}
+\end{Slide}
+
+
+
+
+\begin{Slide}{Matris som Array med Array med heltal i Java}\SlideFontTiny
+\begin{CodeSmall}[language=Java]
+public class ArrayMatrix {
+
+    public static void showMatrix(int[][] m){
+        System.out.println("\n--- showMatrix ---");
+        for (int row = 0; row < m.length; row++){
+            for (int col = 0; col < m[row].length; col++) {
+                System.out.print("[" + row + "]");
+                System.out.print("[" + col + "] = ");
+                System.out.print(m[row][col] + "; ");
+            }
+            System.out.println();
+        }
+    }
+    
+    public static void main(String[] args) {
+        int[][] xss = new int[10][5];
+        showMatrix(xss);
+    }
+}
+\end{CodeSmall}
+\pause
+Övning: skriv en metod \code{fillRnd} som fyller en heltalsmatris med slumptal 1 till n: 
+\pause
+\jcode|public static void fillRnd(int[][] m, int n){ /* ??? */ }| \\
+\pause
+Tips: använd en nästlad for-sats och: \\ 
+\jcode{(int) (Math.random * n + 1)   // (int) motsvarar Scalas asInstanceOf[Int]}
+
+\end{Slide}
+
+\begin{Slide}{Om veckans övningar}\SlideFontSmall
+\begin{itemize}
+\item Träna på att iterera i nästlade strukurer
+
+\item Fortsätt jobba med Yatzy-exemplet
+
+\item Övning 2f) ger träning i att skapa en \Emph{imperativ} algoritm: \\ 
+lös \code{isYatzy} med \code{while}-sats (kunde varit del av en tenta...)
+
+\item Extrauppgiften 7 är en bra träning på matriser där du ska bygga ett enkelt yatzy-spel i terminalen (kunde varit del av en tenta...)
+
+\item Uppgift 3 är en förberedelse inför nästa veckas labb: \code{survey} då vi ska analysera enkäter och kombinera matriser \& registrering \& sortering.
+
+\end{itemize}
+\end{Slide}
+
+\begin{Slide}{Grunduppgift 3, utgör början på labb \code{survey}}\SlideFontSmall
+
+\begin{ScalaSpec}{Table}
+object Table {
+  /** Creates a new Table from fileName with columns split by sep */
+  def fromFile(fileName: String, separator: Char = ';'): Table = ???
+}
+case class Table(
+  data: Vector[Vector[String]], 
+  headings: Vector[String], 
+  sep: String){
+  /** A 2-tuple with (number of rows, number of columns) in data */
+  val dim: (Int, Int) = ???
+
+  /** The element in row r an column c of data, counting from 0 */
+  def apply(r: Int, c: Int): String = ???
+
+  /** The row-vector r in data, counting from 0 */
+  def row(r: Int): Vector[String]= ???
+
+  /** The column-vector c in data, counting from 0 */
+  def col(c: Int): Vector[String] = ???
+
+  /** A map from heading to index counting from 0 */
+  lazy val indexOfHeading: Map[String, Int] = ???
+
+  /** The column-vector with heading h in data */
+  def col(h: String): Vector[String] = ???
+
+  /** A vector with the distinct, sorted values of col with heading h */ 
+  def values(h: String): Vector[String] = ???
+
+  /** Headings and data with columns separated by sep */
+  override lazy val toString: String = ???
+}
+\end{ScalaSpec}
+\end{Slide}
+
+
+\begin{Slide}{Fördjupningsuppgift 8: skapa en generisk matris-klass}\SlideFontSmall
+\vspace{-0.7em}
+\begin{Code}[basicstyle=\SlideFontSize{6}{6.8}\ttfamily\selectfont]
+case class Matrix[T](data: Vector[Vector[T]]){
+
+  def foreachRowCol(f: (Int, Int, T) => Unit): Unit = 
+    for (r <- data.indices) {
+      for (c <- data(r).indices) {
+        f(r, c, data(r)(c))
+      }
+    }
+
+  def map[U](f: T => U): Matrix[U] = Matrix(data.map(_.map(f)))
+
+  /** The element at row r and column c */
+  def apply(r: Int, c: Int): T = ???
+
+  /** Gives Some[T](element) at index (r, c) if within index bounds, else None */
+  def get(r: Int, c: Int): Option[T] = ???
+
+  /** The row vector of row r */ 
+  def row(r: Int): Vector[T] = ???
+
+  /** The column vector of column c */ 
+  def col(c: Int): Vector[T] = ???
+
+  /** A new Matrix with element at row r and col c updated */
+  def updated(r: Int, c: Int, value: T): Matrix[T] = ???
+}
+object Matrix {
+  def fill[T](rowSize: Int, colSize: Int)(init: T): Matrix[T] = 
+    new Matrix(Vector.fill(rowSize)(Vector.fill(colSize)(init)))  
+}
+\end{Code}
+\end{Slide}
+
+
+\fi
+
+
+
+
+
+
+
+
+
+
+
